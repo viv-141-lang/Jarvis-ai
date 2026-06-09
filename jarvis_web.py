@@ -1,6 +1,5 @@
 import streamlit as st
 import google.generativeai as genai
-import time
 
 # Set page configuration
 st.set_page_config(page_title="JARVIS AI", page_icon="🤖", layout="wide")
@@ -56,14 +55,19 @@ if prompt := st.chat_input("What are your commands, Sir?"):
     
     # Generate streaming response
     with st.chat_message("assistant"):
-        # Helper generator function to stream content text chunks
-        def generate_stream():
+        placeholder = st.empty()
+        full_response = ""
+        try:
+            # Request streaming chunks from Google Gemini
             response_stream = model.generate_content(prompt, stream=True)
             for chunk in response_stream:
-                yield chunk.text
-
-        # Use Streamlit's native stream writer for fluid, typewriter-style delivery
-        full_response = st.write_stream(generate_stream)
-        
+                full_response += chunk.text
+                # Display the accumulating text with a visual typing cursor
+                placeholder.markdown(full_response + "▌")
+            # Final clean render removing the cursor once complete
+            placeholder.markdown(full_response)
+        except Exception as e:
+            st.error(f"System Error: {str(e)}")
+            
     # Save complete response to session history
     st.session_state.messages.append({"role": "assistant", "content": full_response})
