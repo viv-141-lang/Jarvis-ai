@@ -26,7 +26,7 @@ except Exception:
     st.stop()
 
 # Initialize Model
-model = genai.GenerativeModel('gemini-1.5-flash', 
+model = genai.GenerativeModel('gemini-3.5-flash', 
                               system_instruction="You are JARVIS, a polite, witty, ultra-intelligent, and professional AI assistant inspired by Iron Man. Address the user with respect, using terms like 'Sir' or 'Ma'am' naturally.")
 
 # Initialize Chat History
