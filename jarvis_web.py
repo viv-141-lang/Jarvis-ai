@@ -12,7 +12,7 @@ st.markdown("""
     .stButton>button { background-color: #001f3f; color: #00f0ff; border: 1px solid #00f0ff; box-shadow: 0 0 5px #00f0ff; }
     .stButton>button:hover { background-color: #00f0ff; color: #0a1128; }
     </style>
-""", unsafe_with_html=True)
+""", unsafe_allow_html=True)
 
 st.title("🤖 J.A.R.V.I.S. // Web Interface")
 st.write("---")
