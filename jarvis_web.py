@@ -1,6 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
-import os
+import time
 
 # Set page configuration
 st.set_page_config(page_title="JARVIS AI", page_icon="🤖", layout="wide")
@@ -13,7 +13,7 @@ st.markdown("""
     .stButton>button { background-color: #001f3f; color: #00f0ff; border: 1px solid #00f0ff; box-shadow: 0 0 5px #00f0ff; }
     .stButton>button:hover { background-color: #00f0ff; color: #0a1128; }
     </style>
-""", unsafe_allow_html=True)
+""", unsafe_with_html=True)
 
 st.title("🤖 J.A.R.V.I.S. // Web Interface")
 st.write("---")
@@ -43,23 +43,27 @@ with st.sidebar:
     if st.button("Recall Latest Insights"):
         st.info("Searching semantic database... (ChromaDB Integration Ready)")
 
-# Display Chat Messages
+# Display Chat Messages from History
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
 # User input
 if prompt := st.chat_input("What are your commands, Sir?"):
+    # Display user message instantly
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # Generate response
+    # Generate streaming response
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        try:
-            response = model.generate_content(prompt)
-            full_response = response.text
-            message_placeholder.markdown(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-        except Exception as e:
-            st.error(f"System Error: {str(e)}")
+        # Helper generator function to stream content text chunks
+        def generate_stream():
+            response_stream = model.generate_content(prompt, stream=True)
+            for chunk in response_stream:
+                yield chunk.text
+
+        # Use Streamlit's native stream writer for fluid, typewriter-style delivery
+        full_response = st.write_stream(generate_stream)
+        
+    # Save complete response to session history
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
