@@ -1,5 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
+from groq import Groq
+import ollama
 
 # Set page configuration
 st.set_page_config(page_title="JARVIS AI", page_icon="🤖", layout="wide")
@@ -14,60 +16,94 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🤖 J.A.R.V.I.S. // Web Interface")
+st.title("🤖 J.A.R.V.I.S. // Command Hub")
 st.write("---")
 
-# Retrieve API key securely from Streamlit Secrets
+# -------------------------
+# NEURAL CORE ROUTER (SIDEBAR)
+# -------------------------
+with st.sidebar:
+    st.markdown("### 🧠 NEURAL CORE ROUTER")
+    # Let the user select which AI brain to use
+    active_brain = st.radio("Active System Model:", [
+        "Gemini 3.5 (Google Cloud)", 
+        "Llama 3 (Groq Cloud)", 
+        "Ollama (Local Rig)"
+    ])
+    st.write("---")
+    st.markdown("### 📊 SYSTEM STATUS")
+    st.metric(label="Active Core", value=active_brain.split(" ")[0])
+
+# -------------------------
+# API INITIALIZATION
+# -------------------------
+# 1. Initialize Google Gemini
 try:
-    api_key = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=api_key)
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    gemini_model = genai.GenerativeModel('gemini-3.5-flash')
 except Exception:
-    st.error("🔑 API Key missing! Please configure GEMINI_API_KEY in your Streamlit Cloud Secrets dashboard.")
-    st.stop()
+    pass # Handle gracefully if running purely locally without secrets
 
-# Initialize Model
-model = genai.GenerativeModel('gemini-3.5-flash', 
-                              system_instruction="You are JARVIS, a polite, witty, ultra-intelligent, and professional AI assistant inspired by Iron Man. Address the user with respect, using terms like 'Sir' or 'Ma'am' naturally.")
+# 2. Initialize Groq (Free ultra-fast open-source API)
+try:
+    groq_client = Groq(api_key=st.secrets.get("GROQ_API_KEY", ""))
+except Exception:
+    groq_client = None
 
-# Initialize Chat History
+# -------------------------
+# CHAT INTERFACE
+# -------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display Sidebar Memory Bank
-with st.sidebar:
-    st.markdown("### 📊 CORE SYSTEMS")
-    st.metric(label="AI Core Status", value="ONLINE")
-    st.write("---")
-    st.markdown("### 🧠 MEMORY BANK Quick Actions")
-    if st.button("Recall Latest Insights"):
-        st.info("Searching semantic database... (ChromaDB Integration Ready)")
-
-# Display Chat Messages from History
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# User input
 if prompt := st.chat_input("What are your commands, Sir?"):
-    # Display user message instantly
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
     
-    # Generate streaming response
     with st.chat_message("assistant"):
         placeholder = st.empty()
         full_response = ""
+        
         try:
-            # Request streaming chunks from Google Gemini
-            response_stream = model.generate_content(prompt, stream=True)
-            for chunk in response_stream:
-                full_response += chunk.text
-                # Display the accumulating text with a visual typing cursor
-                placeholder.markdown(full_response + "▌")
-            # Final clean render removing the cursor once complete
-            placeholder.markdown(full_response)
-        except Exception as e:
-            st.error(f"System Error: {str(e)}")
+            # --- ROUTE 1: GOOGLE GEMINI ---
+            if active_brain == "Gemini 3.5 (Google Cloud)":
+                response_stream = gemini_model.generate_content(prompt, stream=True)
+                for chunk in response_stream:
+                    full_response += chunk.text
+                    placeholder.markdown(full_response + "▌")
             
-    # Save complete response to session history
+            # --- ROUTE 2: GROQ (e.g., Llama 3) ---
+            elif active_brain == "Llama 3 (Groq Cloud)":
+                if not groq_client:
+                    st.error("Groq API Key missing.")
+                    st.stop()
+                
+                response_stream = groq_client.chat.completions.create(
+                    model="llama3-8b-8192", # Groq's free Llama 3 endpoint
+                    messages=st.session_state.messages,
+                    stream=True
+                )
+                for chunk in response_stream:
+                    if chunk.choices[0].delta.content is not None:
+                        full_response += chunk.choices[0].delta.content
+                        placeholder.markdown(full_response + "▌")
+            
+            # --- ROUTE 3: LOCAL OLLAMA ---
+            elif active_brain == "Ollama (Local Rig)":
+                # Uses the local machine's network to talk to Ollama
+                response_stream = ollama.chat(model='llama3', messages=st.session_state.messages, stream=True)
+                for chunk in response_stream:
+                    full_response += chunk['message']['content']
+                    placeholder.markdown(full_response + "▌")
+
+            # Final render
+            placeholder.markdown(full_response)
+        
+        except Exception as e:
+            st.error(f"System Error: {str(e)}\n\n(If using Ollama on the web, ensure your local port is exposed!)")
+            
     st.session_state.messages.append({"role": "assistant", "content": full_response})
