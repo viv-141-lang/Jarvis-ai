@@ -12,7 +12,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
 CLAUDE_MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-4-8")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3")
 
 # --- Google Programmable Search (live news) ---
