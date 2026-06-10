@@ -4,3 +4,5 @@ __pycache__/
 .venv/
 .chainlit/
 .files/
+*.log
+*.pid
