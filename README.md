@@ -32,11 +32,28 @@ You need:
 - `GOOGLE_SEARCH_API_KEY` + `GOOGLE_SEARCH_CX` — Google Programmable Search Engine
 - (Trading) `KITE_API_KEY`, `KITE_ACCESS_TOKEN`, `TRADINGVIEW_WEBHOOK_SECRET`
 
+After filling in `.env`, verify your setup:
+
+```bash
+python -m jarvis.doctor    # checks every key/integration and tells you what's missing
+```
+
 ## Run the voice chat
 
 ```bash
 chainlit run app.py -w
 ```
+
+On Windows you can instead use the one-shot scripts (they create the venv,
+install deps, run the doctor, then launch):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\start-jarvis.ps1     # voice UI
+powershell -ExecutionPolicy Bypass -File scripts\start-executor.ps1   # trading executor
+```
+
+Prefer the terminal? `python -m jarvis.cli` gives you the same brain in
+text-only mode.
 
 Open http://localhost:8000, click the microphone and talk. Jarvis transcribes you
 locally with Whisper, replies in text, and speaks the answer aloud (edge-tts).
